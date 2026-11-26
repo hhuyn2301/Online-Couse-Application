@@ -30,7 +30,9 @@ class Lesson(models.Model):
 
 
 class Question(models.Model):
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='questions')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='questions', null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='questions', null=True, blank=True)
+    grade = models.PositiveIntegerField(default=10)
     question_text = models.TextField()
     is_exam = models.BooleanField(default=False)
     order = models.IntegerField(default=0)
@@ -38,6 +40,11 @@ class Question(models.Model):
 
     def __str__(self):
         return self.question_text[:50]
+
+    def is_get_score(self, selected_ids):
+        correct = set(self.choices.filter(is_correct=True).values_list('id', flat=True))
+        chosen = set(self.choices.filter(id__in=selected_ids).values_list('id', flat=True))
+        return bool(correct) and correct == chosen
 
     class Meta:
         ordering = ['order']
@@ -58,7 +65,9 @@ class Choice(models.Model):
 
 class Submission(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='submissions')
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
+    enrollment = models.ForeignKey('Enrollment', on_delete=models.CASCADE, related_name='submissions', null=True, blank=True)
+    choices = models.ManyToManyField(Choice, blank=True)
     answers = models.JSONField(default=dict)
     score = models.FloatField(default=0)
     total_questions = models.IntegerField(default=0)
@@ -66,7 +75,34 @@ class Submission(models.Model):
     is_passed = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.student.username} - {self.lesson.name}"
+        return f"{self.student.username} - Submission {self.pk}"
 
     class Meta:
         ordering = ['-submitted_at']
+
+class Learner(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='learner_profile')
+
+    def __str__(self):
+        return self.user.username
+
+
+class Instructor(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='instructor_profile')
+
+    def __str__(self):
+        return self.user.username
+
+
+class Enrollment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='course_enrollments')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'course'], name='unique_user_course_enrollment')
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.name}"
