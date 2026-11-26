@@ -33,7 +33,7 @@
 
         <div class="row mt-5">
             <div class="col-md-12">
-                <h2>Lessons</h2>
+                <h2 class="mb-3">Lessons</h2>
                 <div class="list-group">
                     {% for lesson in lessons %}
                         <div class="list-group-item">
@@ -44,8 +44,8 @@
                                     <small class="text-muted">Order: {{ lesson.order }}</small>
                                 </div>
                                 <div>
-                                    {% if lesson.questions.all|dictsort:"is_exam" %}
-                                        <a href="{% url 'submit' lesson.id %}" class="btn btn-primary btn-sm">
+                                    {% if questions %}
+                                        <a href="{% url 'submit' course.id %}" class="btn btn-primary btn-sm">
                                             Take Exam
                                         </a>
                                     {% else %}
